@@ -30,7 +30,6 @@ public class HashTable<K, V> {
                         innerNode = innerNode.nextNode;
                     }
                 }
-
             }
         }
 
@@ -43,14 +42,26 @@ public class HashTable<K, V> {
         return innerPlace;
     }
 
-    public V get(K key){
-    return findNode(key).value;
+    public V get(K key) {
+        return findNode(key).value;
     }
 
-    public boolean delete() {
+    public boolean delete(K key) {
+        int innerPlace = findPlaceInInnerArray(innerArrayLength, key.hashCode());
+        if (innerArray[innerPlace] == null) {
+            return false;
+        } else {
+            if (innerArray[innerPlace].key.hashCode() == key.hashCode() && key.equals(innerArray[innerPlace])) {
+                innerArray[innerPlace] = innerArray[innerPlace].nextNode;
+                return true;
+            }
+        }
+        Node<K,V> previous;
+
         return false;
     }
 
+    //вынес поиск в отдельный метод
     private Node<K, V> findNode(K key) {
         int innerPlace = findPlaceInInnerArray(innerArrayLength, key.hashCode());
         if (innerArray[innerPlace] == null) {
@@ -58,6 +69,8 @@ public class HashTable<K, V> {
         }
         Node<K, V> innerNode = innerArray[innerPlace];
         boolean findIsComplete = false;
+
+
 
         while (!findIsComplete) {
 
@@ -75,7 +88,9 @@ public class HashTable<K, V> {
     }
 
     public boolean contains(K key) {
-        return false;
+        if (findNode(key) != null) {
+            return true;
+        } else return false;
     }
 
     public HashTable() {
