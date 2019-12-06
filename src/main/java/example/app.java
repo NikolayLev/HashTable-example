@@ -1,5 +1,7 @@
 package example;
 
+import java.util.Arrays;
+
 public class app {
     public static void main(String[] args) {
 
@@ -10,7 +12,9 @@ public class app {
         hashTable.put("As123sd",123);
         hashTable.put("Assaasd",123);
 
-        System.out.println(hashTable.get("Assda"));
+
+
+        System.out.println(Arrays.toString(hashTable.getEntrySet()));
     }
 
 }
