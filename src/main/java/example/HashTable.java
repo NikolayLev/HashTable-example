@@ -1,13 +1,11 @@
 package example;
 
-import java.util.Arrays;
-
 public class HashTable<K, V> {
     private K node;
     private V value;
-    private Node<K, V>[] innerArray;
-    private int innerArrayLength;
-    private float loadFactory = 0.5f;
+    private Node<K, V>[] bucket;
+    private int bucketLength;
+    private final float LOAD_FACTORY = 0.75f;
     private int size = 0;
 
     public int getSize() {
@@ -17,58 +15,51 @@ public class HashTable<K, V> {
     //количество занятых ячеек в массиве
     private float load = 0f;
 
+
     public void put(K key, V value) {
-        if (load / innerArrayLength >= 0.75f) {
+        if (load / bucketLength >= LOAD_FACTORY) {
             expandInnerArray();
         }
-        put(key, value, innerArray);
-    }
-
-    private void put(K key, V value, Node[] nodes) {
-        Node<K, V> node = new Node<K, V>(key, value);
-        int innerPlace = findPlaceInInnerArray(innerArrayLength, key.hashCode());
+        Node<K, V> node = new Node<>(key, value);
+        int innerPlace = findPlaceInInnerArray(bucketLength, key.hashCode());
         boolean addIsComplete = false;
 
-        if (nodes[innerPlace] == null) {
-            nodes[innerPlace] = node;
+        if (bucket[innerPlace] == null) {
+            bucket[innerPlace] = node;
             size++;
             load++;
             addIsComplete = true;
 
         } else {
-            Node<K, V> innerNode = nodes[innerPlace];
+            Node<K, V> innerNode = bucket[innerPlace];
             while (!addIsComplete) {
 
                 if (innerNode.hash == key.hashCode() && innerNode.key.equals(key)) {
                     innerNode.value = value;
                     addIsComplete = true;
 
-                } else {
-                    if (innerNode.nextNode == null) {
-                        innerNode.nextNode = node;
-                        node.previousNode = innerNode;
-                        size++;
-                        addIsComplete = true;
+                } else if (innerNode.nextNode == null) {
+                    innerNode.nextNode = node;
+                    node.previousNode = innerNode;
+                    size++;
+                    addIsComplete = true;
 
-                    } else {
-                        innerNode = innerNode.nextNode;
-                    }
+                } else {
+                    innerNode = innerNode.nextNode;
                 }
             }
         }
-
     }
+
 
     //вспомогательный метод для поиска места в иннер массиве
     private int findPlaceInInnerArray(int innerArrayLength, int hash) {
-        int innerPlace;
-        innerPlace = (innerArrayLength - 1) & hash;
-        System.out.println(innerPlace);
-        return innerPlace;
+        return (innerArrayLength - 1) & hash;
     }
 
     public V get(K key) {
-        return findNode(key).value;
+        V node = findNode(key).value;
+        return node != null ? node : null;
     }
 
     public boolean delete(K key) {
@@ -77,8 +68,9 @@ public class HashTable<K, V> {
             return false;
         }
         if (deletedNode.previousNode == null && deletedNode.nextNode == null) {
-            innerArray[findPlaceInInnerArray(innerArrayLength, deletedNode.key.hashCode())] = null;
+            bucket[findPlaceInInnerArray(bucketLength, deletedNode.key.hashCode())] = null;
             size--;
+            load--;
             return true;
 
         }
@@ -95,11 +87,11 @@ public class HashTable<K, V> {
 
     //вынес поиск в отдельный метод
     private Node<K, V> findNode(K key) {
-        int innerPlace = findPlaceInInnerArray(innerArrayLength, key.hashCode());
-        if (innerArray[innerPlace] == null) {
+        int innerPlace = findPlaceInInnerArray(bucketLength, key.hashCode());
+        if (bucket[innerPlace] == null) {
             return null;
         }
-        Node<K, V> innerNode = innerArray[innerPlace];
+        Node<K, V> innerNode = bucket[innerPlace];
         boolean findIsComplete = false;
 
 
@@ -107,60 +99,59 @@ public class HashTable<K, V> {
 
             if (innerNode.hash == key.hashCode() && innerNode.key.equals(key)) {
                 return innerNode;
+            } else if (innerNode.nextNode == null) {
+                return null;
             } else {
-                if (innerNode.nextNode == null) {
-                    return null;
-                } else {
-                    innerNode = innerNode.nextNode;
-                }
+                innerNode = innerNode.nextNode;
             }
         }
         return null;
     }
 
+
     public boolean contains(K key) {
         if (findNode(key) != null) {
             return true;
-        } else return false;
+        } else {
+            return false;
+        }
     }
 
     public HashTable() {
-        innerArray = new Node[8];
-        innerArrayLength = innerArray.length;
+        bucket = new Node[16];
+        bucketLength = bucket.length;
     }
 
     private void expandInnerArray() {
-        Node<K, V> newInnerArray[] = new Node[innerArrayLength * 2];
         Entry<K, V>[] entrySet = getEntrySet();
-        System.out.println(Arrays.toString(entrySet));
-        innerArrayLength = innerArrayLength * 2;
+        bucket = new Node[bucketLength * 2];
+
+        bucketLength = bucketLength * 2;
         load = 0;
         size = 0;
 
         for (Entry<K, V> entry : entrySet) {
-            put(entry.key, entry.value, newInnerArray);
-            System.out.println("put");
+            put(entry.key, entry.value);
         }
-
-        innerArray = newInnerArray;
-        System.out.println("Пересобрали внутринний массив");
 
     }
 
     public Entry<K, V>[] getEntrySet() {
         Entry<K, V>[] entrySet = new Entry[size];
         int nextSlot = 0;
-        for (int i = 0; i < innerArrayLength; i++) {
-            if (innerArray[i] != null) {
-                Node<K, V> innerNode = innerArray[i];
+        for (int i = 0; i < bucketLength; i++) {
+            if (bucket[i] == null) {
+                continue;
+            }
+            Node<K, V> innerNode = bucket[i];
+            entrySet[nextSlot++] = new Entry<K, V>(innerNode.key, innerNode.value);
+            boolean hasNext = false;
+            while (innerNode.nextNode != null) {
+                innerNode = innerNode.nextNode;
                 entrySet[nextSlot++] = new Entry<K, V>(innerNode.key, innerNode.value);
-                boolean hasNext = false;
-                while (innerNode.nextNode != null) {
-                    innerNode = innerNode.nextNode;
-                    entrySet[nextSlot++] = new Entry<K, V>(innerNode.key, innerNode.value);
-                }
             }
         }
+
         return entrySet;
     }
 
