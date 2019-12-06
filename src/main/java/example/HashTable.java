@@ -1,38 +1,55 @@
 package example;
 
+import java.util.Arrays;
+
 public class HashTable<K, V> {
     private K node;
     private V value;
     private Node<K, V>[] innerArray;
     private int innerArrayLength;
-    private float loadFactory = 0.75f;
+    private float loadFactory = 0.5f;
     private int size = 0;
 
+    public int getSize() {
+        return size;
+    }
+
+    //количество занятых ячеек в массиве
+    private float load = 0f;
+
     public void put(K key, V value) {
+        if (load / innerArrayLength >= 0.75f) {
+            expandInnerArray();
+        }
+        put(key, value, innerArray);
+    }
+
+    private void put(K key, V value, Node[] nodes) {
         Node<K, V> node = new Node<K, V>(key, value);
         int innerPlace = findPlaceInInnerArray(innerArrayLength, key.hashCode());
         boolean addIsComplete = false;
 
-        if (innerArray[innerPlace] == null) {
-            innerArray[innerPlace] = node;
+        if (nodes[innerPlace] == null) {
+            nodes[innerPlace] = node;
             size++;
+            load++;
             addIsComplete = true;
-            System.out.println("add");
+
         } else {
-            Node<K, V> innerNode = innerArray[innerPlace];
+            Node<K, V> innerNode = nodes[innerPlace];
             while (!addIsComplete) {
 
                 if (innerNode.hash == key.hashCode() && innerNode.key.equals(key)) {
                     innerNode.value = value;
                     addIsComplete = true;
-                    System.out.println("add in equal");
+
                 } else {
                     if (innerNode.nextNode == null) {
                         innerNode.nextNode = node;
                         node.previousNode = innerNode;
                         size++;
                         addIsComplete = true;
-                        System.out.println("add");
+
                     } else {
                         innerNode = innerNode.nextNode;
                     }
@@ -45,7 +62,8 @@ public class HashTable<K, V> {
     //вспомогательный метод для поиска места в иннер массиве
     private int findPlaceInInnerArray(int innerArrayLength, int hash) {
         int innerPlace;
-        innerPlace = hash % (innerArrayLength - 1);
+        innerPlace = (innerArrayLength - 1) & hash;
+        System.out.println(innerPlace);
         return innerPlace;
     }
 
@@ -60,7 +78,9 @@ public class HashTable<K, V> {
         }
         if (deletedNode.previousNode == null && deletedNode.nextNode == null) {
             innerArray[findPlaceInInnerArray(innerArrayLength, deletedNode.key.hashCode())] = null;
+            size--;
             return true;
+
         }
 
         if (deletedNode.previousNode != null) {
@@ -69,6 +89,7 @@ public class HashTable<K, V> {
         if (deletedNode.nextNode != null) {
             deletedNode.nextNode.previousNode = deletedNode.previousNode;
         }
+        size--;
         return true;
     }
 
@@ -104,13 +125,26 @@ public class HashTable<K, V> {
     }
 
     public HashTable() {
-        innerArray = new Node[16];
+        innerArray = new Node[8];
         innerArrayLength = innerArray.length;
     }
 
     private void expandInnerArray() {
         Node<K, V> newInnerArray[] = new Node[innerArrayLength * 2];
-        Entry<K,V>[] = this.getEntrySet();
+        Entry<K, V>[] entrySet = getEntrySet();
+        System.out.println(Arrays.toString(entrySet));
+        innerArrayLength = innerArrayLength * 2;
+        load = 0;
+        size = 0;
+
+        for (Entry<K, V> entry : entrySet) {
+            put(entry.key, entry.value, newInnerArray);
+            System.out.println("put");
+        }
+
+        innerArray = newInnerArray;
+        System.out.println("Пересобрали внутринний массив");
+
     }
 
     public Entry<K, V>[] getEntrySet() {
@@ -131,7 +165,7 @@ public class HashTable<K, V> {
     }
 
 
-    private class Entry<K, V> {
+    public class Entry<K, V> {
         private K key;
         private V value;
 
